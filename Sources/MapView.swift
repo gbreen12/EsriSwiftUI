@@ -22,6 +22,7 @@ public struct MapView: View {
 }
 
 open class MapViewModel: ObservableObject {
+    var subscriptions = Set<AnyCancellable>()
     @Published public var layers: [AGSLayer] = []
     @Published public var map: AGSMap
     
@@ -71,21 +72,17 @@ class MapViewCoordinator {
         parent.viewModel.$map
             .combineLatest(parent.viewModel.$layers)
             .sink { (map, layers) in
-                parent.mapView.map = map
-                print(layers.count)
+                if parent.mapView.map != map {
+                    parent.mapView.map = map
+                }
                 
-                map.operationalLayers.removeAllObjects()
-                map.operationalLayers.addObjects(from: layers)
+                let toAdd = layers.filter { !map.operationalLayers.contains($0) }
+                map.operationalLayers.addObjects(from: toAdd)
+                
+                let toRemove = map.operationalLayers.filter { !layers.contains($0 as! AGSLayer) }
+                map.operationalLayers.removeObjects(in: toRemove)
             }
             .store(in: &subscriptions)
-        
-        parent.mapView.viewpointChangedHandler = {
-            guard let viewPoint = parent.mapView.currentViewpoint(with: .centerAndScale) else {
-                return
-            }
-            
-            print(viewPoint)
-        }
     }
 }
 
