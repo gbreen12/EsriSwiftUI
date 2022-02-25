@@ -23,8 +23,8 @@ public struct MapView: View {
 
 open class MapViewModel: ObservableObject {
     var subscriptions = Set<AnyCancellable>()
-    @Published public var layers: [AGSLayer] = []
     @Published public var map: AGSMap
+    @Published public var isAttributionTextVisible = true
     
     public init(map: AGSMap = AGSMap(basemap: .openStreetMap())) {
         self.map = map
@@ -39,23 +39,11 @@ struct _MapView: UIViewRepresentable {
         self.viewModel = viewModel
     }
     
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView(frame: .zero)
-        view.addSubview(mapView)
-        
-        mapView.contentMode = .scaleAspectFit
-        mapView.translatesAutoresizingMaskIntoConstraints = false
-        mapView.isAttributionTextVisible = false
-        
-        NSLayoutConstraint.activate([
-            mapView.heightAnchor.constraint(equalTo: view.heightAnchor),
-            mapView.widthAnchor.constraint(equalTo: view.widthAnchor)
-        ])
-        
-        return view
+    func makeUIView(context: Context) -> AGSMapView {
+        mapView
     }
     
-    func updateUIView(_ uiView: UIView, context: Context) {}
+    func updateUIView(_ uiView: AGSMapView, context: Context) {}
     
     func makeCoordinator() -> MapViewCoordinator {
         MapViewCoordinator(self)
@@ -70,17 +58,16 @@ class MapViewCoordinator {
         self.parent = parent
         
         parent.viewModel.$map
-            .combineLatest(parent.viewModel.$layers)
-            .sink { (map, layers) in
+            .sink { map in
                 if parent.mapView.map != map {
                     parent.mapView.map = map
                 }
-                
-                let toAdd = layers.filter { !map.operationalLayers.contains($0) }
-                map.operationalLayers.addObjects(from: toAdd)
-                
-                let toRemove = map.operationalLayers.filter { !layers.contains($0 as! AGSLayer) }
-                map.operationalLayers.removeObjects(in: toRemove)
+            }
+            .store(in: &subscriptions)
+        
+        parent.viewModel.$isAttributionTextVisible
+            .sink {
+                parent.mapView.isAttributionTextVisible = $0
             }
             .store(in: &subscriptions)
     }
@@ -93,10 +80,6 @@ struct MapView_Previews: PreviewProvider {
     
     static var previews: some View {
         let viewModel = MapViewModel()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            viewModel.layers.append(layer)
-        }
-        
         return MapView(viewModel: viewModel)
     }
 }
