@@ -134,7 +134,7 @@ open class MapViewCoordinator: NSObject {
         
         parent.viewModel.zoomToCurrentLocation
             .sink { [unowned self] in
-                self.zoomToCurrentLocation()
+                self.tryZoomToCurrentLocation()
             }
             .store(in: &subscriptions)
         
@@ -145,7 +145,7 @@ open class MapViewCoordinator: NSObject {
             .store(in: &subscriptions)
     }
     
-    open func zoomToCurrentLocation() {
+    open func tryZoomToCurrentLocation() {
         guard !parent.mapView.locationDisplay.started else {
             self.zoomToCurrentLocation()
             return
@@ -174,6 +174,10 @@ open class MapViewCoordinator: NSObject {
                 self.zoomToCurrentLocation()
             })
             .store(in: &self.subscriptions)
+    }
+    
+    open func zoomToCurrentLocation() {
+        self.parent.viewModel.currentLocationReceived(location: self.parent.mapView.locationDisplay.location)
     }
     
     func identify(_ request: GraphicsOverlayIdentifyRequest) {

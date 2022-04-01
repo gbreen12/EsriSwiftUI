@@ -30,4 +30,8 @@ open class MapViewModel: ObservableObject {
     open func pointTapped(screenPoint: CGPoint, mapPoint: AGSPoint) {
         
     }
+    
+    open func currentLocationReceived(location: AGSLocation?) {
+        
+    }
 }
