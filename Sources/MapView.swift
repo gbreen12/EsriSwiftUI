@@ -29,6 +29,12 @@ public struct GeometryZoom {
     public let geometry: AGSGeometry
     public let padding: Double
     public let completion: (Bool) -> Void
+    
+    public init(geometry: AGSGeometry, padding: Double, completion: @escaping (Bool) -> Void) {
+        self.geometry = geometry
+        self.padding = padding
+        self.completion = completion
+    }
 }
 
 public struct MapView: View {
