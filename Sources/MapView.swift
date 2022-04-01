@@ -37,6 +37,24 @@ public struct GeometryZoom {
     }
 }
 
+public struct GraphicsOverlayIdentifyRequest {
+    public let graphicsOverlay: AGSGraphicsOverlay
+    public let screenPoint: CGPoint
+    public let tolerance: Double
+    public let returnPopupsOnly: Bool
+    public let maximumResults: Int?
+    public let completion: (AGSIdentifyGraphicsOverlayResult) -> Void
+    
+    public init(graphicsOverlay: AGSGraphicsOverlay, screenPoint: CGPoint, tolerance: Double, returnsPopupsOnly: Bool, maximumResults: Int?, completion: @escaping (AGSIdentifyGraphicsOverlayResult) -> Void) {
+        self.graphicsOverlay = graphicsOverlay
+        self.screenPoint = screenPoint
+        self.tolerance = tolerance
+        self.returnPopupsOnly = returnsPopupsOnly
+        self.maximumResults = maximumResults
+        self.completion = completion
+    }
+}
+
 public struct MapView: View {
     @ObservedObject var viewModel: MapViewModel
     
@@ -119,6 +137,12 @@ open class MapViewCoordinator: NSObject {
                 self.zoomToCurrentLocation()
             }
             .store(in: &subscriptions)
+        
+        parent.viewModel.graphicsOverlayIdentify
+            .sink { [unowned self] in
+                self.identify($0)
+            }
+            .store(in: &subscriptions)
     }
     
     open func zoomToCurrentLocation() {
@@ -150,6 +174,15 @@ open class MapViewCoordinator: NSObject {
                 self.zoomToCurrentLocation()
             })
             .store(in: &self.subscriptions)
+    }
+    
+    func identify(_ request: GraphicsOverlayIdentifyRequest) {
+        guard let maximumResults = request.maximumResults else {
+            parent.mapView.identify(request.graphicsOverlay, screenPoint: request.screenPoint, tolerance: request.tolerance, returnPopupsOnly: request.returnPopupsOnly, completion: request.completion)
+            return
+        }
+        
+        parent.mapView.identify(request.graphicsOverlay, screenPoint: request.screenPoint, tolerance: request.tolerance, returnPopupsOnly: request.returnPopupsOnly, maximumResults: maximumResults, completion: request.completion)
     }
 }
 
