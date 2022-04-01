@@ -28,9 +28,9 @@ public extension AGSLocationDisplay {
 public struct GeometryZoom {
     public let geometry: AGSGeometry
     public let padding: Double
-    public let completion: (Bool) -> Void
+    public let completion: ((Bool) -> Void)?
     
-    public init(geometry: AGSGeometry, padding: Double, completion: @escaping (Bool) -> Void) {
+    public init(geometry: AGSGeometry, padding: Double, completion: ((Bool) -> Void)? = nil) {
         self.geometry = geometry
         self.padding = padding
         self.completion = completion
