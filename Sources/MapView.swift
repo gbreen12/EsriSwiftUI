@@ -9,6 +9,28 @@ import ArcGIS
 import Combine
 import SwiftUI
 
+public extension AGSLocationDisplay {
+    func start() -> AnyPublisher<Void, Error> {
+        Future<Void, Error> { promise in
+            self.start { err in
+                guard err == nil else {
+                    promise(.failure(err!))
+                    return
+                }
+                
+                promise(.success(()))
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+}
+
+public struct GeometryZoom {
+    public let geometry: AGSGeometry
+    public let padding: Double
+    public let completion: (Bool) -> Void
+}
+
 public struct MapView: View {
     @ObservedObject var viewModel: MapViewModel
     
@@ -25,11 +47,17 @@ open class MapViewModel: ObservableObject {
     var subscriptions = Set<AnyCancellable>()
     @Published public var map: AGSMap
     @Published public var graphicsOverlays: [AGSGraphicsOverlay]
-    @Published public var isAttributionTextVisible = true
+    @Published public var isAttributionTextVisible: Bool
+    @Published public var errorGettingLocation = false
     
-    public init(map: AGSMap = AGSMap(basemap: .openStreetMap()), graphicsOverlays: [AGSGraphicsOverlay] = []) {
+    public let zoomToGeometry = PassthroughSubject<GeometryZoom, Never>()
+    public let zoomToViewpoint = PassthroughSubject<AGSViewpoint, Never>()
+    public let zoomToCurrentLocation = PassthroughSubject<Void, Never>()
+    
+    public init(map: AGSMap = AGSMap(basemap: .openStreetMap()), graphicsOverlays: [AGSGraphicsOverlay] = [], isAttributionTextVisible: Bool = true) {
         self.map = map
         self.graphicsOverlays = graphicsOverlays
+        self.isAttributionTextVisible = isAttributionTextVisible
     }
     
     open func pointTapped(screenPoint: CGPoint, mapPoint: AGSPoint) {
@@ -64,7 +92,6 @@ open class MapViewCoordinator: NSObject {
     init(_ parent: _MapView) {
         self.parent = parent
         
-        
         parent.viewModel.$map
             .sink { map in
                 if parent.mapView.map != map {
@@ -88,6 +115,57 @@ open class MapViewCoordinator: NSObject {
                 parent.mapView.isAttributionTextVisible = $0
             }
             .store(in: &subscriptions)
+        
+        super.init()
+        
+        parent.viewModel.zoomToViewpoint
+            .sink { [unowned self] viewpoint in
+                self.parent.mapView.setViewpoint(viewpoint)
+            }
+            .store(in: &subscriptions)
+        
+        parent.viewModel.zoomToGeometry
+            .sink { [unowned self] obj in
+                self.parent.mapView.setViewpointGeometry(obj.geometry, padding: obj.padding, completion: obj.completion)
+            }
+            .store(in: &subscriptions)
+        
+        parent.viewModel.zoomToCurrentLocation
+            .sink { [unowned self] in
+                self.zoomToCurrentLocation()
+            }
+            .store(in: &subscriptions)
+    }
+    
+    open func zoomToCurrentLocation() {
+        guard !parent.mapView.locationDisplay.started else {
+            self.zoomToCurrentLocation()
+            return
+        }
+
+        parent.mapView.locationDisplay.start()
+            .flatMap({ [unowned self] () -> AnyPublisher<AGSLocation?, Never> in
+                self.parent.mapView.locationDisplay.publisher(for: \.location).eraseToAnyPublisher()
+            })
+            .drop(while: {
+                guard let point = $0 else {
+                    return true
+                }
+                
+                return point.lastKnown
+            })
+            .first()
+            .sink(receiveCompletion: { [unowned self] completion in
+                switch completion {
+                case .finished:
+                    break
+                case .failure:
+                    self.parent.viewModel.errorGettingLocation = true
+                }
+            }, receiveValue: { [unowned self] location in
+                self.zoomToCurrentLocation()
+            })
+            .store(in: &self.subscriptions)
     }
 }
 
