@@ -120,21 +120,16 @@ open class MapViewCoordinator: NSObject {
         
         super.init()
         
-        parent.viewModel.zoomToViewpoint
-            .sink { [unowned self] viewpoint in
-                self.parent.mapView.setViewpoint(viewpoint)
-            }
-            .store(in: &subscriptions)
-        
-        parent.viewModel.zoomToGeometry
-            .sink { [unowned self] obj in
-                self.parent.mapView.setViewpointGeometry(obj.geometry, padding: obj.padding, completion: obj.completion)
-            }
-            .store(in: &subscriptions)
-        
-        parent.viewModel.zoomToCurrentLocation
-            .sink { [unowned self] in
-                self.tryZoomToCurrentLocation()
+        parent.viewModel.zoom
+            .sink { [unowned self] type in
+                switch type {
+                case .currentLocation:
+                    self.tryZoomToCurrentLocation()
+                case .geometry(let geo):
+                    self.parent.mapView.setViewpointGeometry(geo.geometry, padding: geo.padding, completion: geo.completion)
+                case .viewpoint(let viewpoint):
+                    self.parent.mapView.setViewpoint(viewpoint)
+                }
             }
             .store(in: &subscriptions)
         
@@ -163,16 +158,16 @@ open class MapViewCoordinator: NSObject {
                 return point.lastKnown
             })
             .first()
-            .sink(receiveCompletion: { [unowned self] completion in
+            .sink { [unowned self] completion in
                 switch completion {
                 case .finished:
                     break
                 case .failure:
                     self.parent.viewModel.errorGettingLocation = true
                 }
-            }, receiveValue: { [unowned self] location in
+            } receiveValue: { [unowned self] location in
                 self.zoomToCurrentLocation()
-            })
+            }
             .store(in: &self.subscriptions)
     }
     

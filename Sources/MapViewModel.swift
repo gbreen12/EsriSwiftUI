@@ -9,6 +9,12 @@ import ArcGIS
 import Combine
 import SwiftUI
 
+public enum ZoomType {
+    case geometry(geometry: GeometryZoom)
+    case viewpoint(viewpoint: AGSViewpoint)
+    case currentLocation
+}
+
 open class MapViewModel: ObservableObject {
     var subscriptions = Set<AnyCancellable>()
     @Published public var map: AGSMap
@@ -16,9 +22,7 @@ open class MapViewModel: ObservableObject {
     @Published public var isAttributionTextVisible: Bool
     @Published public var errorGettingLocation = false
     
-    public let zoomToGeometry = PassthroughSubject<GeometryZoom, Never>()
-    public let zoomToViewpoint = PassthroughSubject<AGSViewpoint, Never>()
-    public let zoomToCurrentLocation = PassthroughSubject<Void, Never>()
+    public let zoom = PassthroughSubject<ZoomType, Never>()
     public let graphicsOverlayIdentify = PassthroughSubject<GraphicsOverlayIdentifyRequest, Never>()
     
     public init(map: AGSMap = AGSMap(basemap: .openStreetMap()), graphicsOverlays: [AGSGraphicsOverlay] = [], isAttributionTextVisible: Bool = true) {
