@@ -24,6 +24,7 @@ open class MapViewModel: ObservableObject {
     
     public let zoom = PassthroughSubject<ZoomType, Never>()
     public let graphicsOverlayIdentify = PassthroughSubject<GraphicsOverlayIdentifyRequest, Never>()
+    public let currentScreenPolygon = CurrentValueSubject<AGSPolygon?, Never>(nil)
     
     public init(map: AGSMap = AGSMap(basemap: .openStreetMap()), graphicsOverlays: [AGSGraphicsOverlay] = [], isAttributionTextVisible: Bool = true) {
         self.map = map

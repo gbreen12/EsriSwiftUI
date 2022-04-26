@@ -94,6 +94,12 @@ open class MapViewCoordinator: NSObject {
     init(_ parent: _MapView) {
         self.parent = parent
         
+        parent.mapView
+            .publisher(for: \.visibleArea)
+            .compactMap { $0 }
+            .assign(to: \.viewModel.currentScreenPolygon.value, on: parent)
+            .store(in: &subscriptions)
+        
         parent.viewModel.$map
             .sink { map in
                 if parent.mapView.map != map {
