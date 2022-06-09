@@ -87,12 +87,6 @@ class SpecificMapViewModel: MapViewModel {
     init() {
         let map = defaultMap
         
-        do {
-            _ = try AGSArcGISRuntimeEnvironment.setLicenseKey("runtimelite,1000,rud8619193768,none,YYPJD4SZ8Y4K8YAJM082")
-        } catch let error {
-            print("error: \(error)")
-        }
-        
         super.init(map: map, graphicsOverlays: [graphicsOverlay])
         
         isAttributionTextVisible = false
