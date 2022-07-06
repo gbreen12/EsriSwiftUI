@@ -37,6 +37,18 @@ public struct GeometryZoom {
     }
 }
 
+public struct PointZoom {
+    public let point: AGSPoint
+    public let scale: Double?
+    public let completion: ((Bool) -> Void)?
+    
+    public init(point: AGSPoint, scale: Double? = nil, completion: ((Bool) -> Void)? = nil) {
+        self.point = point
+        self.scale = scale
+        self.completion = completion
+    }
+}
+
 public struct GraphicsOverlayIdentifyRequest {
     public let graphicsOverlay: AGSGraphicsOverlay
     public let screenPoint: CGPoint
@@ -133,9 +145,15 @@ open class MapViewCoordinator: NSObject {
                     self.tryZoomToCurrentLocation()
                 case .geometry(let geo):
                     if let point = geo.geometry as? AGSPoint {
-                        self.parent.mapView.setViewpointCenter(point)
+                        self.parent.mapView.setViewpointCenter(point, completion: geo.completion)
                     } else {
                         self.parent.mapView.setViewpointGeometry(geo.geometry, padding: geo.padding, completion: geo.completion)
+                    }
+                case .point(let point):
+                    if let scale = point.scale {
+                        self.parent.mapView.setViewpointCenter(point.point, scale: scale, completion: point.completion)
+                    } else {
+                        self.parent.mapView.setViewpointCenter(point.point, completion: point.completion)
                     }
                 case .viewpoint(let viewpoint):
                     self.parent.mapView.setViewpoint(viewpoint)

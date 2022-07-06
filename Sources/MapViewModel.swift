@@ -11,6 +11,7 @@ import SwiftUI
 
 public enum ZoomType {
     case geometry(geometry: GeometryZoom)
+    case point(point: PointZoom)
     case viewpoint(viewpoint: AGSViewpoint)
     case currentLocation
 }
