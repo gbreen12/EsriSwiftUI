@@ -132,14 +132,11 @@ open class MapViewCoordinator: NSObject {
                 case .currentLocation:
                     self.tryZoomToCurrentLocation()
                 case .geometry(let geo):
-                    var geometry = geo.geometry
-                    var padding = geo.padding
-                    
                     if let point = geo.geometry as? AGSPoint {
-                        geometry = AGSEnvelope(xMin: point.x - geo.padding, yMin: point.y - geo.padding, xMax: point.x + geo.padding, yMax: point.y + geo.padding, spatialReference: parent.viewModel.map.spatialReference)
-                        padding = 0
+                        self.parent.mapView.setViewpointCenter(point)
+                    } else {
+                        self.parent.mapView.setViewpointGeometry(geo.geometry, padding: geo.padding, completion: geo.completion)
                     }
-                    self.parent.mapView.setViewpointGeometry(geometry, padding: padding, completion: geo.completion)
                 case .viewpoint(let viewpoint):
                     self.parent.mapView.setViewpoint(viewpoint)
                 }
